@@ -1,5 +1,38 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <SDL2/SDL.h>
+
+#define internal static
+#define local_persist static
+#define global_variable static
+
+global_variable SDL_Texture *texture;
+global_variable void *pixels;
+global_variable int texture_width;
+
+internal void
+SDLResizeTexture(SDL_Renderer *renderer, int width, int height) {
+    if (pixels) {
+        free(pixels);
+    }
+    if (texture) {
+        SDL_DestroyTexture(texture);
+    }
+
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
+                                SDL_TEXTUREACCESS_STREAMING,
+                                width,
+                                height);
+    texture_width = width;
+    pixels = malloc(width * height * 4);
+}
+
+internal void
+SDLUpdateWindow(SDL_Window *window, SDL_Renderer *renderer) {
+    SDL_UpdateTexture(texture, 0, pixels, texture_width * 4);
+    SDL_RenderCopy(renderer, texture, 0, 0);
+    SDL_RenderPresent(renderer);
+}
 
 bool HandleEvent(SDL_Event *event) {
     bool should_quit = false;
@@ -25,16 +58,7 @@ bool HandleEvent(SDL_Event *event) {
                 case SDL_WINDOWEVENT_EXPOSED: {
                     SDL_Window *window = SDL_GetWindowFromID(event->window.windowID);
                     SDL_Renderer *renderer = SDL_GetRenderer(window);
-                    static bool is_white = true;
-                    if (is_white) {
-                        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-                        is_white = false;
-                    } else {
-                        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-                        is_white = true;
-                    }
-                    SDL_RenderClear(renderer);
-                    SDL_RenderPresent(renderer);
+                    SDLUpdateWindow(window, renderer);
                 }
                     break;
 
